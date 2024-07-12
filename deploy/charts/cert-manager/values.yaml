@@ -43,7 +43,8 @@ global:
     useAppArmor: true
 
   # Set the verbosity of cert-manager. A range of 0 - 6, with 6 being the most verbose.
-  logLevel: 2
+  # TODO: Temporarily increased so that we can observe the WatchList / streaming list log messages
+  logLevel: 6
 
   leaderElection:
     # Override the namespace used for the leader election lease.
@@ -209,8 +210,8 @@ enableCertificateOwnerRef: false
 # This property is used to configure options for the controller pod.
 # This allows setting options that would usually be provided using flags.
 #
-# If `apiVersion` and `kind` are unspecified they default to the current latest 
-# version (currently `controller.config.cert-manager.io/v1alpha1`). You can pin 
+# If `apiVersion` and `kind` are unspecified they default to the current latest
+# version (currently `controller.config.cert-manager.io/v1alpha1`). You can pin
 # the version by specifying the `apiVersion` yourself.
 #
 # For example:
@@ -617,8 +618,8 @@ webhook:
   # This is used to configure options for the webhook pod.
   # This allows setting options that would usually be provided using flags.
   #
-  # If `apiVersion` and `kind` are unspecified they default to the current latest 
-  # version (currently `webhook.config.cert-manager.io/v1alpha1`). You can pin 
+  # If `apiVersion` and `kind` are unspecified they default to the current latest
+  # version (currently `webhook.config.cert-manager.io/v1alpha1`). You can pin
   # the version by specifying the `apiVersion` yourself.
   #
   # For example:
@@ -970,8 +971,8 @@ cainjector:
   # This is used to configure options for the cainjector pod.
   # It allows setting options that are usually provided via flags.
   #
-  # If `apiVersion` and `kind` are unspecified they default to the current latest 
-  # version (currently `cainjector.config.cert-manager.io/v1alpha1`). You can pin 
+  # If `apiVersion` and `kind` are unspecified they default to the current latest
+  # version (currently `cainjector.config.cert-manager.io/v1alpha1`). You can pin
   # the version by specifying the `apiVersion` yourself.
   #
   # For example:
