@@ -24,6 +24,18 @@ linters:
           pkg: ^github\.com/cert-manager/cert-manager/third_party/forked/acme$
           msg: >-
             Do not construct the forked ACME client directly; obtain one via pkg/acme/accounts.NewClient.
+    gocritic:
+      enabled-checks:
+        # Runs the custom lint rules in hack/logsafety.rules.go, banning
+        # nil-unsafe fmt.Stringer pointers as structured logging values.
+        # NOTE: golangci-lint's result cache does not include the rules file,
+        # so run `golangci-lint cache clean` after editing it.
+        - ruleguard
+      settings:
+        ruleguard:
+          failOn: all
+          # ${base-path} resolves to the directory containing this config file.
+          rules: ${base-path}/hack/logsafety.rules.go
     gosec:
       excludes:
         - G101 # Look for hardcoded credentials
