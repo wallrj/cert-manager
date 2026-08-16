@@ -19,6 +19,7 @@ package venafi
 import (
 	"context"
 	"fmt"
+	"os"
 
 	cmapi "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
@@ -97,11 +98,20 @@ func (v *VenafiTPP) Provision(ctx context.Context) error {
 		return err
 	}
 
+	var caBundle []byte
+	if path := v.config.Addons.Venafi.TPP.CABundlePath; path != "" {
+		caBundle, err = os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading Venafi TPP CA bundle %q: %w", path, err)
+		}
+	}
+
 	v.createdSecret = s
 	v.details.issuerTemplate = cmapi.VenafiIssuer{
 		Zone: v.config.Addons.Venafi.TPP.Zone,
 		TPP: &cmapi.VenafiTPP{
-			URL: v.config.Addons.Venafi.TPP.URL,
+			URL:      v.config.Addons.Venafi.TPP.URL,
+			CABundle: caBundle,
 			CredentialsRef: cmmeta.LocalObjectReference{
 				Name: s.Name,
 			},

@@ -29,11 +29,12 @@ type Venafi struct {
 }
 
 type VenafiTPPConfiguration struct {
-	URL         string
-	Zone        string
-	Username    string
-	Password    string // #nosec G117 -- test config only
-	AccessToken string // #nosec G117 -- test config only
+	URL          string
+	Zone         string
+	Username     string
+	Password     string // #nosec G117 -- test config only
+	AccessToken  string // #nosec G117 -- test config only
+	CABundlePath string
 }
 
 type VenafiCloudConfiguration struct {
@@ -65,6 +66,7 @@ func (v *VenafiTPPConfiguration) AddFlags(fs *flag.FlagSet) {
 	fs.StringVar(&v.Username, "global.venafi-tpp-username", os.Getenv("VENAFI_TPP_USERNAME"), "Username to use when authenticating with the Venafi TPP instance")
 	fs.StringVar(&v.Password, "global.venafi-tpp-password", os.Getenv("VENAFI_TPP_PASSWORD"), "Password to use when authenticating with the Venafi TPP instance")
 	fs.StringVar(&v.AccessToken, "global.venafi-tpp-access-token", os.Getenv("VENAFI_TPP_ACCESS_TOKEN"), "Access token to use when authenticating with the Venafi TPP instance")
+	fs.StringVar(&v.CABundlePath, "global.venafi-tpp-ca-bundle", os.Getenv("VENAFI_TPP_CA_BUNDLE"), "Path to a PEM CA bundle which the created issuers will use to verify the TLS certificate of the Venafi TPP instance. Required when testing against a TPP instance (e.g. a local fake) whose serving certificate is not signed by a publicly trusted CA")
 }
 
 func (v *VenafiTPPConfiguration) Validate() []error {
