@@ -97,6 +97,7 @@ func (v *VenafiNGTS) Provision(ctx context.Context) error {
 	v.details.issuerTemplate = cmapi.VenafiIssuer{
 		Zone: v.config.Addons.Venafi.NGTS.Zone,
 		NGTS: &cmapi.VenafiNGTS{
+			URL:           v.config.Addons.Venafi.NGTS.URL,
 			TokenEndpoint: v.config.Addons.Venafi.NGTS.TokenEndpoint,
 			TSGID:         v.config.Addons.Venafi.NGTS.TSGID,
 			CredentialsRef: cmmeta.LocalObjectReference{

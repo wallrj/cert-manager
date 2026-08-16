@@ -44,6 +44,7 @@ type VenafiCloudConfiguration struct {
 }
 
 type VenafiNGTSConfiguration struct {
+	URL           string
 	Zone          string
 	TokenEndpoint string
 	TSGID         string
@@ -85,6 +86,7 @@ func (v *VenafiCloudConfiguration) Validate() []error {
 }
 
 func (v *VenafiNGTSConfiguration) AddFlags(fs *flag.FlagSet) {
+	fs.StringVar(&v.URL, "global.venafi-ngts-url", os.Getenv("VENAFI_NGTS_URL"), "URL of the Venafi NGTS instance to use during tests, e.g. a local fake. Defaults to the public NGTS API. Note that the created issuers verify the TLS certificate of the instance against the system trust store of the cert-manager controller: there is no caBundle field for Venafi NGTS issuers")
 	fs.StringVar(&v.Zone, "global.venafi-ngts-zone", os.Getenv("VENAFI_NGTS_ZONE"), "Zone (certificate policy template) to use during Venafi NGTS end-to-end tests")
 	fs.StringVar(&v.TokenEndpoint, "global.venafi-ngts-token-endpoint", os.Getenv("VENAFI_NGTS_TOKEN_ENDPOINT"), "OAuth 2.0 token endpoint URL for Venafi NGTS (optional, defaults to https://auth.apps.paloaltonetworks.com/oauth2/access_token)")
 	fs.StringVar(&v.TSGID, "global.venafi-ngts-tsg-id", os.Getenv("VENAFI_NGTS_TSG_ID"), "Tenant Service Group ID for Venafi NGTS, e.g. 1234567890")
