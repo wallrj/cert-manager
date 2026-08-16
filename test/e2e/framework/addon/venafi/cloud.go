@@ -86,11 +86,16 @@ func (v *VenafiCloud) Provision(ctx context.Context) error {
 		return err
 	}
 
+	url := v.config.Addons.Venafi.Cloud.URL
+	if url == "" {
+		url = "https://api.venafi.cloud"
+	}
+
 	v.createdSecret = s
 	v.details.issuerTemplate = cmapi.VenafiIssuer{
 		Zone: v.config.Addons.Venafi.Cloud.Zone,
 		Cloud: &cmapi.VenafiCloud{
-			URL: "https://api.venafi.cloud",
+			URL: url,
 			APITokenSecretRef: cmmeta.SecretKeySelector{
 				LocalObjectReference: cmmeta.LocalObjectReference{
 					Name: s.Name,

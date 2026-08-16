@@ -38,6 +38,7 @@ type VenafiTPPConfiguration struct {
 }
 
 type VenafiCloudConfiguration struct {
+	URL      string
 	Zone     string
 	APIToken string // #nosec G117 -- test config only
 }
@@ -74,6 +75,7 @@ func (v *VenafiTPPConfiguration) Validate() []error {
 }
 
 func (v *VenafiCloudConfiguration) AddFlags(fs *flag.FlagSet) {
+	fs.StringVar(&v.URL, "global.venafi-cloud-url", os.Getenv("VENAFI_CLOUD_URL"), "URL of the Venafi Cloud instance to use during tests, e.g. a local fake. Defaults to the public Venafi Cloud API. Note that the created issuers verify the TLS certificate of the instance against the system trust store of the cert-manager controller: there is no caBundle field for Venafi Cloud issuers")
 	fs.StringVar(&v.Zone, "global.venafi-cloud-zone", os.Getenv("VENAFI_CLOUD_ZONE"), "Zone to use during Venafi Cloud end-to-end tests")
 	fs.StringVar(&v.APIToken, "global.venafi-cloud-apitoken", os.Getenv("VENAFI_CLOUD_APITOKEN"), "API token to use when authenticating with the Venafi Cloud instance")
 }
