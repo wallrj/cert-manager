@@ -66,6 +66,76 @@ RELEASE_NAME="${RELEASE_NAME:-cert-manager}"
 
 HELM_URL="oci://quay.io/jetstack/charts/cert-manager"
 
+# Checks for behavior changes which affect resources that already exist at
+# upgrade time. They hold for any INITIAL_RELEASE, because each assertion is
+# on the state after upgrading to the current checkout.
+
+key_hash() {
+	$kubectl get secret "$1" -n default -o jsonpath='{.data.tls\.key}' | sha256sum | cut -d' ' -f1
+}
+
+# Whether the controller ServiceAccount may create tokens for itself. The Role
+# granting this was removed from the Helm chart and static manifests in v1.21.
+can_create_own_token() {
+	$kubectl auth can-i create serviceaccounts/cert-manager --subresource=token \
+		-n "${NAMESPACE}" --as="system:serviceaccount:${NAMESPACE}:cert-manager" >/dev/null
+}
+
+before_upgrade_checks() {
+	$kubectl wait --for=condition=Ready cert/test-rotation-default cert/test-rotation-never --timeout=180s
+	KEY_DEFAULT_BEFORE=$(key_hash test-rotation-default)
+	KEY_NEVER_BEFORE=$(key_hash test-rotation-never)
+	echo "+++ Before upgrade: controller can create its own ServiceAccount tokens: $(can_create_own_token && echo yes || echo no)"
+}
+
+# $1 is "helm" or "static": how the upgrade was applied.
+after_upgrade_checks() {
+	echo "+++ Checking the rotationPolicy default (Never before v1.18, Always since)"
+	$cmctl renew -n default test-rotation-default test-rotation-never
+	for c in test-rotation-default test-rotation-never; do
+		for _ in $(seq 90); do
+			[[ "$($kubectl get cert "$c" -n default -o jsonpath='{.status.revision}')" == "2" ]] && break
+			sleep 2
+		done
+	done
+	$kubectl wait --for=condition=Ready cert/test-rotation-default cert/test-rotation-never --timeout=180s
+	if [[ "$(key_hash test-rotation-default)" == "${KEY_DEFAULT_BEFORE}" ]]; then
+		echo "FAIL: test-rotation-default (rotationPolicy unset) kept its private key on renewal" >&2
+		exit 1
+	fi
+	if [[ "$(key_hash test-rotation-never)" != "${KEY_NEVER_BEFORE}" ]]; then
+		echo "FAIL: test-rotation-never (rotationPolicy: Never) got a new private key on renewal" >&2
+		exit 1
+	fi
+	echo "+++ rotationPolicy unset: new key. rotationPolicy Never: same key. OK"
+
+	case "$1" in
+	helm)
+		echo "+++ Checking that Helm removed the serviceaccounts/token Role (v1.21)"
+		if can_create_own_token; then
+			echo "FAIL: controller can still create its own ServiceAccount tokens after upgrade" >&2
+			exit 1
+		fi
+		$kubectl apply -n "${NAMESPACE}" -f "${REPO_ROOT}/test/fixtures/upgrade/tokenrequest-rbac.yaml"
+		if ! can_create_own_token; then
+			echo "FAIL: the Role from the upgrade notes does not restore the token permission" >&2
+			exit 1
+		fi
+		echo "+++ tokenrequest Role removed by the upgrade and restored by the documented workaround. OK"
+		;;
+	static)
+		# kubectl apply does not prune objects which are absent from the new
+		# manifest, so the Role from the initial release stays behind.
+		echo "+++ Checking that kubectl apply left the serviceaccounts/token Role in place"
+		if ! can_create_own_token; then
+			echo "FAIL: expected the tokenrequest Role from the initial release to remain after kubectl apply" >&2
+			exit 1
+		fi
+		echo "+++ tokenrequest Role from the initial release remains after a static manifest upgrade. OK"
+		;;
+	esac
+}
+
 echo "+++ Testing upgrading from ${INITIAL_RELEASE} to commit ${KUBE_GIT_COMMIT} with Helm"
 
 # 1. INSTALL THE INITIAL RELEASE'S PUBLISHED HELM CHART
@@ -95,6 +165,8 @@ $kubectl apply -f "${REPO_ROOT}/test/fixtures/cert-manager-resources.yaml" --sel
 # Ensure cert becomes ready
 $kubectl wait --for=condition=Ready cert/test1 --timeout=180s
 
+before_upgrade_checks
+
 # 2. BUILD AND UPGRADE TO HELM CHART FROM THE CURRENT MASTER
 
 # e2e-setup-certmanager both builds and deploys the latest available chart based on the current checkout
@@ -113,6 +185,8 @@ $kubectl apply -f "${REPO_ROOT}/test/fixtures/cert-manager-resources.yaml" --sel
 
 # Ensure cert becomes ready
 $kubectl wait --for=condition=Ready cert/test2 --timeout=180s
+
+after_upgrade_checks helm
 
 # 3. UNINSTALL HELM RELEASE
 
@@ -154,6 +228,8 @@ $kubectl apply -f "${REPO_ROOT}/test/fixtures/cert-manager-resources.yaml" --sel
 
 # Ensure cert becomes ready
 $kubectl wait --for=condition=Ready cert/test1 --timeout=180s
+
+before_upgrade_checks
 
 # 2. VERIFY UPGRADE TO MASTER FROM THE INITIAL RELEASE
 
@@ -202,6 +278,8 @@ $kubectl apply -f "${REPO_ROOT}/test/fixtures/cert-manager-resources.yaml" --sel
 
 # Ensure cert becomes ready
 $kubectl wait --for=condition=Ready cert/test2 --timeout=180s
+
+after_upgrade_checks static
 
 # 3. UNINSTALL
 

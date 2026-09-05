@@ -53,3 +53,41 @@ spec:
     kind: Issuer
     name: selfsigned-issuer
   secretName: test2
+---
+# rotationPolicy is unset on purpose. The default changed from Never to
+# Always in v1.18, so after upgrading past that release a renewal must
+# produce a new private key. See hack/verify-upgrade.sh.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-rotation-default
+  namespace: default
+  labels:
+    test: first
+spec:
+  dnsNames:
+  - example.com
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: test-rotation-default
+---
+# Control for the above: an explicit Never must keep the key on renewal.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-rotation-never
+  namespace: default
+  labels:
+    test: first
+spec:
+  dnsNames:
+  - example.com
+  issuerRef:
+    group: cert-manager.io
+    kind: Issuer
+    name: selfsigned-issuer
+  privateKey:
+    rotationPolicy: Never
+  secretName: test-rotation-never
